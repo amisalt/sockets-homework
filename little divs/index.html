@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+        .dot{
+            width: 10px;
+            height: 10px;
+            background-color: black;
+            border-radius: 50%;
+            position: absolute;
+        }
+        .user{
+            background-color: royalblue;
+        }
+    </style>
+</head>
+<body>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const field = document.body
+        let myDot
+        const socket = io()
+        socket.on("yourID", id=>{
+            console.log(1234);
+            myDot = document.createElement("div")
+            myDot.classList.add("dot", "user")
+            myDot.id = id
+            field.append(myDot)
+        })
+        field.addEventListener("mousemove", (e)=>{
+            myDot.style.left = (e.pageX-5)+"px"
+            myDot.style.top = (e.pageY-5)+"px"
+            socket.emit("mousemove", {"xRatio":e.pageX/field.clientWidth, "yRatio":e.pageY/field.clientHeight})
+        })
+        socket.on("movementData", data=>{
+            let dot = document.getElementById(data.id)
+            if(!dot){
+                dot = document.createElement("div")
+                dot.classList.add("dot")
+                dot.id = data.id
+                field.append(dot)
+            }
+            dot.style.left = (data.xRatio*field.clientWidth-5)+"px"
+            dot.style.top = (data.yRatio*field.clientHeight-5)+"px"
+        })
+    </script>
+</body>
+</html>
