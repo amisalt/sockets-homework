@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+        #users{
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        #users p{
+            text-align: center;
+            margin: 0;
+        }
+        #users p.opp{
+            background-color: rgb(161, 161, 161);
+        }
+        #tictactoe{
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3,100px);
+        }
+        #tictactoe button{
+            border: 1px solid black;
+        }
+        #tictactoe button.usermove{
+            background-color: rgb(87, 206, 107);
+        }
+        #tictactoe button.oppmove{
+            background-color: rgb(206, 87, 87);
+        }
+    </style>
+</head>
+<body>
+    <div id="users"></div>
+    <div id="tictactoe">
+        <button></button>
+        <button></button>
+        <button></button>
+        <button></button>
+        <button></button>
+        <button></button>
+        <button></button>
+        <button></button>
+        <button></button>
+    </div>
+    <span id="winmessage"></span>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const usersList = document.getElementById("users")
+        const buttonsTictactoe = document.querySelectorAll("#tictactoe button")
+        const winMessage = document.getElementById("winmessage")
+        const socket = io()
+        let role
+
+        function addUserToUL(user){
+            const p = document.createElement("p")
+            p.textContent = user
+            p.addEventListener("click", ()=>{
+                p.classList.add("opp")
+                socket.emit("opp choice", p.textContent)
+                winMessage.textContent = ""
+                role = 1
+            })
+            usersList.append(p)
+        }
+
+        function displayMatrix(matrix){
+            for(let i in matrix){
+                if(matrix[i] == role) buttonsTictactoe[i].classList.add("usermove")
+                else{
+                    if(matrix[i] != 0) buttonsTictactoe[i].classList.add("oppmove")
+                    else{
+                        buttonsTictactoe[i].classList.remove("usermove")
+                        buttonsTictactoe[i].classList.remove("oppmove")
+                    }
+                }
+            }
+        }
+
+        function enableDisableButtons(flag){
+            for(let button of buttonsTictactoe) button.disabled = !flag
+        }
+
+        socket.on("users list", users=>{
+            for(let user of users){
+                addUserToUL(user)
+            }
+        })
+        socket.on("new user", user=>addUserToUL(user))
+        socket.on("join room", data=>{
+            role = 2
+            let dataGameroom = data[0].split("-")
+            let opp = dataGameroom[1]
+            for(let p of document.querySelectorAll("#users p")){
+                if (p.textContent == opp){
+                    p.classList.add("opp")
+                    break
+                }
+            }
+            socket.emit("join room", [data[0], dataGameroom[2]])
+        })
+        socket.on("wait", matrix=>{
+            console.log("wait");
+            displayMatrix(matrix)
+            enableDisableButtons(false)
+        })
+        socket.on("move", matrix=>{
+            console.log("move");
+            displayMatrix(matrix)
+            enableDisableButtons(true)
+            for(let i in buttonsTictactoe){
+                buttonsTictactoe[i].addEventListener("click", ()=>{
+                    if(matrix[i] == 0) matrix[i] = role
+                    socket.emit("moved", matrix)
+                })
+            }
+        })
+        socket.on("win", data=>{
+            displayMatrix([0,0,0,0,0,0,0,0,0])
+            for(let p of document.querySelectorAll("#users p")){
+                p.classList.remove("opp")
+            }
+            socket.emit("leave", data)
+        })
+    </script>
+</body>
+</html>
